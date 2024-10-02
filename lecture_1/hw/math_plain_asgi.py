@@ -19,16 +19,11 @@ async def read_body(receive):
 
     return body
 
-async def app(
-    scope: dict[str, Any],
-    receive: Callable[[], Awaitable[dict[str, Any]]],
-    send: Callable[[dict[str, Any]], Awaitable[None]],
-) -> None:
-
-    # if scope['method'] != 'GET':
-    #     await client.send_data(send, HTTPStatus.NOT_FOUND, {"error" : "Not Found"})
-
+async def app(scope, receive, send):
     try:
+        if scope['type'] != 'http':
+            await client.send_data(send, HTTPStatus.NOT_FOUND, {"error": "Not Found"})
+            return
         if scope['path'] == '/factorial':
             try:
                 l = scope['query_string'].decode('utf-8').split("&")

@@ -25,8 +25,8 @@ async def app(
     send: Callable[[dict[str, Any]], Awaitable[None]],
 ) -> None:
 
-    if scope['method'] != 'GET':
-        await client.send_data(send, HTTPStatus.NOT_FOUND, {"error" : "Not Found"})
+    # if scope['method'] != 'GET':
+    #     await client.send_data(send, HTTPStatus.NOT_FOUND, {"error" : "Not Found"})
 
     try:
         if scope['path'] == '/factorial':

@@ -21,6 +21,7 @@ confluent-kafka = "^2.6.0"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.6.5"
+pytest-cov = "^5.0.0"
 
 
 [tool.poetry.group.test.dependencies]

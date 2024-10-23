@@ -1,61 +1,65 @@
 from http import HTTPStatus
 from typing import List, Optional
 
-from fastapi import FastAPI, APIRouter, HTTPException, Response
+from fastapi import FastAPI, HTTPException, Response
 
-from lecture_2.hw.shop_api.models import Cart, Item, ItemDto, DEFAULT_ITEM_DTO_FIELDS, ItemCart
+from . import models
+from prometheus_fastapi_instrumentator import Instrumentator
+
 
 items = []
 carts = []
 
 app = FastAPI(title="Shop API")
+Instrumentator().instrument(app).expose(app)
 
 @app.post("/cart", status_code=HTTPStatus.CREATED)
 def create_cart(response: Response):
     id = len(carts) + 1
-    cart = Cart(id=id)
+    cart = models.Cart(id=id)
     carts.append(cart)
     # as REST states one should provide uri to newly created resource in location header
     response.headers["location"] = f"/cart/{cart.id}"
     return cart
 
-@app.get("/cart/{id}", response_model=Cart)
+@app.get("/cart/{id}", response_model=models.Cart)
 def get_cart(id: int):
+    print(233423)
     for cart in carts:
         if cart.id == id:
             return cart
     raise HTTPException(detail="Cart not found", status_code=HTTPStatus.NOT_FOUND)
 
 @app.post("/item", status_code=HTTPStatus.CREATED)
-def add_item(item: ItemDto, response: Response):
+def add_item(item: models.ItemDto, response: Response):
     id = len(items) + 1
-    item = Item(id=id, name=item.name, price=item.price, deleted = False)
+    item = models.Item(id=id, name=item.name, price=item.price, deleted = False)
     items.append(item)
     # as REST states one should provide uri to newly created resource in location header
     response.headers["location"] = f"/item/{item.id}"
     return item
 
-@app.get("/item/{id}", response_model=Item)
+@app.get("/item/{id}", response_model=models.Item)
 def get_item(id: int):
     for item in items:
         if item.id == id and not item.deleted:
             return item
     raise HTTPException( detail="Item not found", status_code=HTTPStatus.NOT_FOUND)
 
-@app.put("/item/{id}", response_model=Item)
-def update_item(id: int, item: ItemDto):
+@app.put("/item/{id}", response_model=models.Item)
+def update_item(id: int, item: models.ItemDto):
     for i, current in enumerate(items):
         if current.id == id:
-            new_item = Item(id=id, name=item.name, price=item.price)
+            new_item = models.Item(id=id, name=item.name, price=item.price)
             items[i] = new_item
             return new_item
     raise HTTPException( detail="Item not found", status_code=HTTPStatus.NOT_FOUND)
 
-@app.patch("/item/{id}", response_model=Item)
+@app.patch("/item/{id}", response_model=models.Item)
 def patch_item(id: int, updated_fields: dict):
 
     for k in updated_fields.keys():
-        if not(k in DEFAULT_ITEM_DTO_FIELDS):
+        if not(k in models.DEFAULT_ITEM_DTO_FIELDS):
             raise HTTPException(detail=f"Unexpected field {k}", status_code=HTTPStatus.UNPROCESSABLE_ENTITY)
     for i, current in enumerate(items):
         if current.id == id:
@@ -65,7 +69,7 @@ def patch_item(id: int, updated_fields: dict):
                 raise HTTPException(detail="Cannot change 'deleted' field", status_code=HTTPStatus.UNPROCESSABLE_ENTITY)
             item_data = current.dict()
             item_data.update(updated_fields)
-            patched_item = Item(**item_data)
+            patched_item = models.Item(**item_data)
             items[i] = patched_item
             return patched_item
     raise HTTPException( detail="Item not found", status_code=HTTPStatus.NOT_FOUND)
@@ -78,7 +82,7 @@ def delete_item(id: int):
             return {"message": "Item deleted"}
     raise HTTPException( detail="Item not found", status_code=HTTPStatus.NOT_FOUND)
 
-@app.get("/item", response_model=List[Item])
+@app.get("/item", response_model=List[models.Item])
 def list_items(
     offset: int = 0, limit: int = 10,
     min_price: Optional[float] = None,
@@ -105,7 +109,7 @@ def list_items(
 
     return filtered_items
 
-@app.get("/cart", response_model=List[Cart])
+@app.get("/cart", response_model=List[models.Cart])
 def list_cart(
     offset: int = 0, limit: int = 10,
     min_price: Optional[float] = None,
@@ -140,7 +144,7 @@ def list_cart(
 
     return filtered_carts
 
-@app.post("/cart/{cart_id}/add/{item_id}", response_model=Cart)
+@app.post("/cart/{cart_id}/add/{item_id}", response_model=models.Cart)
 def add_item_to_cart(cart_id: int, item_id: int):
     for cart in carts:
         if cart.id == cart_id:
@@ -151,7 +155,7 @@ def add_item_to_cart(cart_id: int, item_id: int):
                             current_item.quantity += 1
                             cart.price += item.price
                             return cart
-                    cart.items.append(ItemCart(id=item.id, name=item.name, quantity=1, available=True))
+                    cart.items.append(models.ItemCart(id=item.id, name=item.name, quantity=1, available=True))
                     cart.price += item.price
                     return cart
             raise HTTPException(detail="Item not found", status_code=HTTPStatus.NOT_FOUND,)
